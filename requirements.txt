@@ -1,0 +1,5 @@
+# Cloud deploy needs psycopg (PostgreSQL driver) + certifi for TLS.
+# Local dev works with the stdlib alone; these are only required in the cloud
+# (when DATABASE_URL points at Postgres/Neon).
+psycopg[binary]>=3.1
+certifi>=2024.2.2

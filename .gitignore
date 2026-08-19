@@ -1,0 +1,17 @@
+# Secrets - never commit the real token
+.env
+
+# Python
+__pycache__/
+*.pyc
+
+# Local data dumps (keep sample.json for the offline demo)
+*.json
+!package.json
+!sample.json
+
+# Local archive database (cloud uses Postgres/Neon instead)
+*.db
+
+# Logs
+*.log

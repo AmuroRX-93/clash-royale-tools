@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Clash Royale Dashboard</title>
+<style>
+  :root {
+    --bg: #0f1220;
+    --bg2: #171b2e;
+    --card: #1e2439;
+    --card2: #262d47;
+    --line: #2e3654;
+    --text: #e8ecf7;
+    --muted: #9aa3c0;
+    --accent: #6c8cff;
+    --gold: #ffcb45;
+    --win: #35d07f;
+    --loss: #ff5d6c;
+    --draw: #9aa3c0;
+    --shadow: 0 8px 30px rgba(0,0,0,.35);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: radial-gradient(1200px 600px at 20% -10%, #23305e 0%, var(--bg) 45%), var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+  header {
+    padding: 22px 28px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+    border-bottom: 1px solid var(--line);
+    background: rgba(15,18,32,.7);
+    backdrop-filter: blur(8px);
+    position: sticky; top: 0; z-index: 10;
+  }
+  header h1 { font-size: 20px; margin: 0; letter-spacing: .3px; }
+  header .crown { font-size: 24px; }
+  .searchbar { display: flex; gap: 8px; margin-left: auto; flex-wrap: wrap; }
+  input[type=text] {
+    background: var(--card); border: 1px solid var(--line); color: var(--text);
+    padding: 10px 14px; border-radius: 10px; font-size: 14px; min-width: 220px; outline: none;
+  }
+  input[type=text]:focus { border-color: var(--accent); }
+  button {
+    background: var(--accent); color: white; border: none; padding: 10px 18px;
+    border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer; transition: .15s;
+  }
+  button:hover { filter: brightness(1.1); }
+  button.secondary { background: var(--card2); color: var(--text); border: 1px solid var(--line); }
+  .container { max-width: 1180px; margin: 0 auto; padding: 24px 28px 60px; }
+  .status { color: var(--muted); font-size: 13px; margin: 8px 0 20px; }
+  .status.err { color: var(--loss); }
+  .grid { display: grid; gap: 18px; }
+  .cards-4 { grid-template-columns: repeat(4, 1fr); }
+  .cards-3 { grid-template-columns: repeat(3, 1fr); }
+  .cards-2 { grid-template-columns: repeat(2, 1fr); }
+  @media (max-width: 900px) { .cards-4,.cards-3,.cards-2 { grid-template-columns: repeat(2,1fr); } }
+  @media (max-width: 560px) { .cards-4,.cards-3,.cards-2 { grid-template-columns: 1fr; } }
+  .card {
+    background: linear-gradient(180deg, var(--card) 0%, var(--bg2) 100%);
+    border: 1px solid var(--line); border-radius: 16px; padding: 18px 20px; box-shadow: var(--shadow);
+  }
+  .stat .label { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .6px; }
+  .stat .value { font-size: 26px; font-weight: 800; margin-top: 6px; }
+  .stat .sub { color: var(--muted); font-size: 12px; margin-top: 4px; }
+  .section-title { font-size: 16px; font-weight: 700; margin: 30px 0 14px; display: flex; align-items: center; gap: 8px; }
+  .section-title .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
+  .profile-head { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
+  .avatar {
+    width: 62px; height: 62px; border-radius: 16px;
+    background: linear-gradient(135deg, var(--accent), #b06cff);
+    display: flex; align-items: center; justify-content: center; font-size: 28px; font-weight: 800;
+  }
+  .pill { display: inline-block; background: var(--card2); border: 1px solid var(--line); color: var(--muted);
+    padding: 3px 10px; border-radius: 999px; font-size: 12px; margin-right: 6px; }
+  .deck { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+  @media (max-width: 560px) { .deck { grid-template-columns: repeat(2,1fr); } }
+  .cardtile {
+    background: var(--card2); border: 1px solid var(--line); border-radius: 12px; padding: 10px; text-align: center; position: relative;
+  }
+  .cardtile img { width: 100%; max-width: 84px; height: auto; }
+  .cardtile .cname { font-size: 12px; margin-top: 6px; color: var(--text); }
+  .cardtile .celixir {
+    position: absolute; top: 6px; left: 6px; width: 22px; height: 22px; border-radius: 50%;
+    background: #c04bd6; color: white; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center;
+  }
+  .cardtile .cevo {
+    position: absolute; top: 6px; right: 6px;
+    font-size: 10px; font-weight: 800; padding: 2px 5px; border-radius: 6px;
+  }
+  .cardtile .cevo.evo { background: var(--gold); color: #3a2a00; }
+  .cardtile .cevo.hero { background: linear-gradient(135deg,#b06cff,#6c8cff); color: #fff; }
+  .minicard { position: relative; display: inline-block; line-height: 0; }
+  .minicard .minitag {
+    position: absolute; top: -3px; right: -3px; font-size: 8px; font-weight: 800;
+    line-height: 1; padding: 1px 3px; border-radius: 4px; color: #fff;
+  }
+  .minicard .minitag.evo { background: var(--gold); color: #3a2a00; }
+  .minicard .minitag.hero { background: linear-gradient(135deg,#b06cff,#6c8cff); }
+  .barrow { display: flex; align-items: center; gap: 10px; margin: 7px 0; }
+  .barrow .bn { width: 150px; font-size: 13px; color: var(--muted); flex-shrink: 0; }
+  .barwrap { flex: 1; background: var(--card2); border-radius: 6px; overflow: hidden; height: 16px; }
+  .bar { height: 100%; background: linear-gradient(90deg, var(--accent), #b06cff); }
+  .barrow .bv { width: 34px; text-align: right; font-size: 12px; color: var(--muted); }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { padding: 9px 10px; text-align: left; border-bottom: 1px solid var(--line); }
+  th { color: var(--muted); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: .5px; }
+  .res { font-weight: 800; }
+  .res.win { color: var(--win); }
+  .res.loss { color: var(--loss); }
+  .res.draw { color: var(--draw); }
+  .minicards { display: flex; gap: 2px; flex-wrap: wrap; }
+  .minicards img { width: 26px; height: auto; border-radius: 3px; }
+  .towers { display: flex; gap: 3px; margin-top: 4px; align-items: center; }
+  .towercard { position: relative; display: inline-block; line-height: 0; }
+  .towercard img { width: 20px; height: auto; border-radius: 3px; opacity: .95;
+    border: 1px solid rgba(120,160,255,.4); background: rgba(120,160,255,.08); }
+  .towercard .twlvl {
+    position: absolute; bottom: -3px; right: -3px; font-size: 8px; font-weight: 800;
+    line-height: 1; padding: 1px 2px; border-radius: 3px; color: #fff;
+    background: #2b6cff; border: 1px solid rgba(0,0,0,.4);
+  }
+  .notower { color: var(--muted); font-size: 11px; }
+  .pdeck { margin: 2px 0; }
+  .pdeck-sep { height: 1px; background: var(--line); margin: 6px 0; opacity: .6; }
+  .p2name { font-size: 11px; color: var(--text); margin-bottom: 3px; opacity: .85; }
+  .chest-timeline { display: flex; gap: 10px; overflow-x: auto; padding: 6px 2px 12px; }
+  .chest {
+    flex-shrink: 0; min-width: 96px; background: var(--card2); border: 1px solid var(--line);
+    border-radius: 12px; padding: 12px 10px; text-align: center;
+  }
+  .chest .idx { color: var(--gold); font-weight: 800; font-size: 13px; }
+  .chest .cn { font-size: 12px; margin-top: 4px; color: var(--text); }
+  .chest.big { border-color: var(--gold); box-shadow: 0 0 0 1px rgba(255,203,69,.25) inset; }
+  .loading { text-align: center; padding: 60px 0; color: var(--muted); }
+  .spinner { width: 34px; height: 34px; border: 3px solid var(--line); border-top-color: var(--accent);
+    border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 16px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .hidden { display: none; }
+  .errbox { background: rgba(255,93,108,.1); border: 1px solid var(--loss); border-radius: 12px; padding: 16px; color: #ffb3ba; }
+  .errbox code { background: rgba(0,0,0,.3); padding: 2px 6px; border-radius: 6px; }
+  .tag-chips { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+  .tag-chips .chip { cursor: pointer; }
+  .account-bar { display: flex; gap: 8px; flex-wrap: wrap; margin: 4px 0 14px; }
+  .account-bar .acct {
+    cursor: pointer; background: var(--card2); border: 1px solid var(--line); color: var(--text);
+    padding: 7px 12px; border-radius: 999px; font-size: 13px; font-weight: 600; transition: .15s;
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .account-bar .acct:hover { border-color: var(--accent); }
+  .account-bar .acct.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .account-bar .acct .atag { font-size: 11px; font-weight: 400; opacity: .7; }
+  .tower-wrap { margin-top: 16px; padding-top: 14px; border-top: 1px dashed var(--line); }
+  .tower-label { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .6px; margin-bottom: 10px; }
+  .tower-list { display: flex; gap: 14px; flex-wrap: wrap; }
+  .tower {
+    display: flex; align-items: center; gap: 10px; background: var(--card2);
+    border: 1px solid var(--line); border-radius: 12px; padding: 8px 14px 8px 8px;
+  }
+  .tower img { width: 46px; height: auto; }
+  .tower .tname { font-size: 13px; font-weight: 600; }
+  .tower .tlvl { color: var(--muted); font-size: 12px; margin-top: 2px; }
+</style>
+</head>
+<body>
+<header>
+  <span class="crown">&#128081;</span>
+  <h1>Clash Royale Dashboard</h1>
+  <div class="searchbar">
+    <input id="tagInput" type="text" placeholder="玩家标签，如 #20GQJGRJ0J" />
+    <button id="fetchBtn" onclick="fetchPlayer()">查询</button>
+    <button class="secondary" id="refreshBtn" onclick="fetchPlayer(true)">刷新</button>
+  </div>
+</header>
+
+<div class="container">
+  <div id="accountBar" class="account-bar"></div>
+  <div id="status" class="status">准备就绪。输入玩家标签后点击查询。</div>
+
+  <div id="loading" class="loading hidden">
+    <div class="spinner"></div>
+    正在联网抓取最新数据…
+  </div>
+
+  <div id="error" class="hidden"></div>
+
+  <div id="content" class="hidden">
+    <!-- profile -->
+    <div class="card">
+      <div class="profile-head">
+        <div class="avatar" id="avatar">?</div>
+        <div>
+          <div style="font-size:22px;font-weight:800" id="pName">-</div>
+          <div style="color:var(--muted);margin-top:4px" id="pTag">-</div>
+          <div style="margin-top:8px">
+            <span class="pill" id="pClan"></span>
+            <span class="pill" id="pArena"></span>
+            <span class="pill" id="pFav"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-title"><span class="dot"></span>核心数据</div>
+    <div class="grid cards-4">
+      <div class="card stat"><div class="label">当前奖杯</div><div class="value" id="sTrophies">-</div><div class="sub" id="sBest">-</div></div>
+      <div class="card stat"><div class="label">胜率</div><div class="value" id="sWinRate">-</div><div class="sub" id="sWL">-</div></div>
+      <div class="card stat"><div class="label">总场次</div><div class="value" id="sBattles">-</div><div class="sub" id="sThree">-</div></div>
+      <div class="card stat"><div class="label">经验等级</div><div class="value" id="sLevel">-</div><div class="sub" id="sStreak">-</div></div>
+    </div>
+
+    <div class="section-title"><span class="dot" style="background:var(--gold)"></span>排位与竞技场系统</div>
+    <div class="grid cards-4">
+      <div class="card stat">
+        <div class="label">奖杯路 (Trophy Road)</div>
+        <div class="value" id="rTrophyRoad">-</div>
+        <div class="sub" id="rTrophyRoadBest">-</div>
+      </div>
+      <div class="card stat">
+        <div class="label">当前竞技场 (Arena)</div>
+        <div class="value" id="rArena" style="font-size:20px">-</div>
+        <div class="sub" id="rArenaId">-</div>
+      </div>
+      <div class="card stat">
+        <div class="label">传奇之路 · 本赛季</div>
+        <div class="value" id="rPolCur" style="font-size:20px">-</div>
+        <div class="sub" id="rPolCurSub">-</div>
+      </div>
+      <div class="card stat">
+        <div class="label">传奇之路 · 历史最佳</div>
+        <div class="value" id="rPolBest" style="font-size:20px">-</div>
+        <div class="sub" id="rPolBestSub">-</div>
+      </div>
+    </div>
+
+    <div class="section-title"><span class="dot"></span>当前卡组 <span id="deckElixir" style="color:var(--muted);font-weight:400;font-size:13px"></span></div>
+    <div class="card">
+      <div class="deck" id="deck"></div>
+      <div id="towerWrap" class="tower-wrap hidden">
+        <div class="tower-label">皇家塔</div>
+        <div class="tower-list" id="towerList"></div>
+      </div>
+    </div>
+
+    <div class="grid cards-2" style="margin-top:18px">
+      <div>
+        <div class="section-title"><span class="dot"></span>最近战绩</div>
+        <div class="card stat"><div class="value" id="recentRecord">-</div><div class="sub" id="recentModes"></div></div>
+      </div>
+      <div>
+        <div class="section-title"><span class="dot"></span>对手常见卡 (meta)</div>
+        <div class="card" id="metaChart"></div>
+      </div>
+    </div>
+
+    <div class="section-title"><span class="dot"></span>对战记录</div>
+    <div class="card" style="overflow-x:auto">
+      <table>
+        <thead><tr><th>时间</th><th>模式</th><th>比分</th><th>结果</th><th>对手</th><th>我方卡组+塔</th><th>对方卡组+塔</th></tr></thead>
+        <tbody id="battleRows"></tbody>
+      </table>
+    </div>
+
+    <div class="section-title"><span class="dot"></span>即将开出的宝箱</div>
+    <div class="card"><div class="chest-timeline" id="chests"></div></div>
+
+    <!-- history archive -->
+    <div class="section-title">
+      <span class="dot" style="background:var(--gold)"></span>历史存档
+      <span id="archiveNote" style="color:var(--muted);font-weight:400;font-size:13px"></span>
+    </div>
+    <div class="grid cards-2">
+      <div class="card stat">
+        <div class="label">已存档对战</div>
+        <div class="value" id="archTotal">-</div>
+        <div class="sub" id="archWL">-</div>
+      </div>
+      <div class="card">
+        <div class="label" style="color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.6px">天梯奖杯趋势 (Ladder)</div>
+        <svg id="trophyChart" width="100%" height="90" style="margin-top:10px;display:block"></svg>
+        <div class="sub" id="trophyRange" style="color:var(--muted);font-size:12px"></div>
+      </div>
+    </div>
+    <div class="card" style="margin-top:14px">
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap">
+        <span style="color:var(--muted);font-size:13px">模式筛选:</span>
+        <select id="modeFilter" onchange="renderHistoryTable()"
+          style="background:var(--card2);border:1px solid var(--line);color:var(--text);padding:6px 10px;border-radius:8px">
+          <option value="">全部</option>
+        </select>
+        <span id="histCount" style="color:var(--muted);font-size:12px;margin-left:auto"></span>
+      </div>
+      <div style="overflow-x:auto">
+        <table>
+          <thead><tr><th>时间</th><th>模式</th><th>比分</th><th>结果</th><th>对手</th><th>我方卡组+塔</th><th>对方卡组+塔</th></tr></thead>
+          <tbody id="histRows"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const BIG_CHESTS = ["Mega Lightning", "Legendary", "Magical", "Giant", "Royal Wild", "Epic", "Overflowing", "Gold Crate"];
+let defaultTag = "#20GQJGRJ0J";
+
+// Card form detection.
+//
+// The API does NOT expose which form a card is *equipped* as. iconUrls only tells
+// you which forms the card OWNS (evolutionMedium = has an evo form; heroMedium =
+// has a hero form), and evolutionLevel is just collection unlock progress. So a
+// card can carry evolutionMedium/heroMedium yet be played in plain form.
+//
+// The one reliable signal is DECK POSITION: only the first 3 slots can hold a
+// special form (1 Evolution slot + 1 Hero slot + 1 Wild slot). Cards in slots
+// 4-8 are always the normal form. So we only consider a special form for idx < 3.
+//
+// If a card owns both forms and sits in the Wild slot, iconUrls reflects the
+// currently-activated form (evolutionMedium vs heroMedium), so we trust that.
+// Champions (rarity === "champion") always play in Hero form when in the first 3.
+const SPECIAL_SLOTS = 3;
+
+function cardForm(c, idx) {
+  // Backend-precomputed form is authoritative.
+  if (c.form) return c.form;                         // "evo" | "hero" | ""
+  if (c.isEvo === true) return "evo";
+  if (c.isHero === true) return "hero";
+  // Fallback mirrors the backend position rule. HERO iff the card ships a hero
+  // icon but NO evolution icon (that's the only reliable "equipped as Hero"
+  // signal). EVO cards like Elite Barbarians ship only a 'medium' icon; Wizard
+  // equipped as EVO ships both icons -> evolution wins.
+  const u = c.iconUrls || {};
+  const evo = c.evolutionLevel != null;
+  const champ = c.rarity === "champion";
+  const wildIsHero = !!u.heroMedium && !u.evolutionMedium;
+  if (idx === 0) return evo ? "evo" : "";
+  if (idx === 1) return (champ || evo) ? "hero" : "";
+  if (idx === 2) {
+    if (champ) return "hero";
+    if (!evo) return "";
+    return wildIsHero ? "hero" : "evo";
+  }
+  if (typeof idx === "number" && idx >= SPECIAL_SLOTS) return "";
+  // Unknown position: best-effort.
+  if (champ) return "hero";
+  if (evo) return wildIsHero ? "hero" : "evo";
+  return "";
+}
+function cardIcon(c, idx) {
+  const u = c.iconUrls || {};
+  const form = cardForm(c, idx);
+  // Prefer the form-specific icon, then fall back to medium. EVO cards that ship
+  // only a 'medium' icon (Elite Barbarians) still get an icon this way.
+  if (form === "hero" && u.heroMedium) return u.heroMedium;
+  if (form === "evo" && u.evolutionMedium) return u.evolutionMedium;
+  return u.medium || u.evolutionMedium || u.heroMedium || "";
+}
+function cardBadge(c, idx) {
+  const form = cardForm(c, idx);
+  if (form === "evo") return '<div class="cevo evo">EVO</div>';
+  if (form === "hero") return '<div class="cevo hero">HERO</div>';
+  return "";
+}
+function cardTileHTML(c, idx) {
+  const icon = cardIcon(c, idx);
+  const elixir = (c.elixir != null ? c.elixir : (c.elixirCost != null ? c.elixirCost : "?"));
+  return '<div class="cardtile">' +
+    '<div class="celixir">' + elixir + '</div>' + cardBadge(c, idx) +
+    (icon ? '<img src="' + icon + '" alt="">' : '') +
+    '<div class="cname">' + c.name + '</div>' +
+  '</div>';
+}
+// Small inline card icon (for battle rows) with an EVO/HERO corner tag.
+function miniCardHTML(c, idx) {
+  const icon = cardIcon(c, idx);
+  if (!icon) return "";
+  const form = cardForm(c, idx);
+  let tag = "";
+  if (form === "evo") tag = '<span class="minitag evo">E</span>';
+  else if (form === "hero") tag = '<span class="minitag hero">H</span>';
+  const t = c.name + (form === "evo" ? " (EVO)" : form === "hero" ? " (HERO)" : "");
+  return '<span class="minicard" title="' + t + '"><img src="' + icon + '">' + tag + '</span>';
+}
+// Render all players on one side (1 in 1v1, 2 in 2v2). Falls back to the legacy
+// single-deck fields when per-player data is absent.
+function sidePlayersHTML(players, fallbackCards, fallbackTowers) {
+  let list = players;
+  if (!list || !list.length) {
+    list = [{ name: "", tag: "", cards: fallbackCards || [], towers: fallbackTowers || [] }];
+  }
+  return list.map(pl => {
+    const cards = (pl.cards || []).map((c, i) => miniCardHTML(c, i)).join("");
+    const tw = towerHTML(pl.towers);
+    const label = (list.length > 1 && pl.name)
+      ? '<div class="p2name">' + pl.name + (pl.tag ? ' <span style="color:var(--muted)">' + pl.tag + '</span>' : "") + '</div>'
+      : "";
+    return '<div class="pdeck">' + label +
+      '<div class="minicards">' + cards + '</div>' +
+      '<div class="towers">' + tw + '</div></div>';
+  }).join('<div class="pdeck-sep"></div>');
+}
+// Tower troops (supportCards): small icons with a level badge.
+function towerHTML(towers) {
+  if (!towers || !towers.length) return '<span class="notower">-</span>';
+  return towers.map(t => {
+    const u = t.iconUrls || {};
+    const icon = u.medium || u.evolutionMedium || "";
+    const lvl = (t.level != null) ? '<span class="twlvl">' + t.level + '</span>' : "";
+    return '<span class="towercard" title="' + (t.name || "") + (t.level != null ? " Lv" + t.level : "") + '">' +
+      (icon ? '<img src="' + icon + '">' : '') + lvl + '</span>';
+  }).join("");
+}
+
+let accounts = [];
+
+async function init() {
+  try {
+    const cfg = await (await fetch("/api/config")).json();
+    defaultTag = cfg.defaultTag || defaultTag;
+    accounts = cfg.accounts || [];
+    document.getElementById("tagInput").value = defaultTag;
+    renderAccountBar();
+    if (!cfg.hasToken) {
+      setStatus("未检测到 API token（.env 里没有 CR_API_TOKEN），抓取会失败。", true);
+    }
+  } catch (e) {}
+}
+
+function renderAccountBar() {
+  const bar = document.getElementById("accountBar");
+  if (!accounts.length) { bar.innerHTML = ""; return; }
+  bar.innerHTML = accounts.map(a =>
+    '<span class="acct" data-tag="' + a.tag + '" onclick="switchAccount(\'' + a.tag + '\')">' +
+      escapeHtml(a.name) + '<span class="atag">' + a.tag + '</span>' +
+    '</span>'
+  ).join("");
+}
+
+function highlightAccount(tag) {
+  document.querySelectorAll("#accountBar .acct").forEach(el => {
+    el.classList.toggle("active", el.getAttribute("data-tag") === tag);
+  });
+}
+
+function switchAccount(tag) {
+  document.getElementById("tagInput").value = tag;
+  highlightAccount(tag);
+  fetchPlayer();
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c =>
+    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+
+function setStatus(msg, isErr) {
+  const el = document.getElementById("status");
+  el.textContent = msg;
+  el.className = "status" + (isErr ? " err" : "");
+}
+
+function show(id) { document.getElementById(id).classList.remove("hidden"); }
+function hide(id) { document.getElementById(id).classList.add("hidden"); }
+
+async function fetchPlayer(isRefresh) {
+  const tag = document.getElementById("tagInput").value.trim() || defaultTag;
+  const useSample = new URLSearchParams(location.search).has("sample");
+  hide("content"); hide("error"); show("loading");
+  setStatus((isRefresh ? "刷新" : "抓取") + "中：" + tag);
+  try {
+    const url = useSample ? "/api/sample" : ("/api/player?tag=" + encodeURIComponent(tag));
+    const res = await fetch(url);
+    const data = await res.json();
+    hide("loading");
+    if (data.error) {
+      renderError(data);
+      return;
+    }
+    render(data);
+    show("content");
+    highlightAccount((data.tag || tag).toUpperCase());
+    setStatus("已更新：" + data.tag + "（" + new Date().toLocaleTimeString() + "）"
+      + (useSample ? " · 离线示例数据" : "")
+      + (data.archived ? " · 本次新存档 " + data.archived.newBattles + " 场" : ""));
+    if (!useSample) loadHistory(data.tag);
+  } catch (e) {
+    hide("loading");
+    renderError({ error: "network", message: e.message });
+  }
+}
+
+function renderError(data) {
+  let html = '<div class="errbox"><b>抓取失败</b><br>';
+  if (data.error === "http_error" && data.status === 403) {
+    let ipHint = "";
+    try {
+      const m = JSON.stringify(data.body).match(/IP\s+([0-9.]+)/);
+      if (m) ipHint = m[1];
+    } catch (e) {}
+    html += "HTTP 403：当前出口 IP 不在 token 的白名单里。";
+    if (ipHint) html += "<br>需要把这个 IP 加进白名单：<code>" + ipHint + "</code>";
+    html += "<br>去 <a href='https://developer.clashroyale.com' target='_blank' style='color:#9ab'>developer.clashroyale.com</a> 新建 key 并添加该 IP，再更新 .env。";
+  } else if (data.error === "no_token") {
+    html += ".env 里没有 CR_API_TOKEN。";
+  } else {
+    html += (data.message || JSON.stringify(data.body || data));
+  }
+  html += "</div>";
+  const el = document.getElementById("error");
+  el.innerHTML = html;
+  show("error");
+  setStatus("抓取失败", true);
+}
+
+function render(data) {
+  const p = data.player;
+  document.getElementById("avatar").textContent = (p.name || "?").slice(0, 1);
+  document.getElementById("pName").textContent = p.name;
+  document.getElementById("pTag").textContent = p.tag;
+  document.getElementById("pClan").textContent = "部落: " + (p.clan ? p.clan.name : "无");
+  document.getElementById("pArena").textContent = "竞技场: " + (p.arena ? p.arena.name : "-");
+  document.getElementById("pFav").textContent = "最爱: " + (p.currentFavouriteCard ? p.currentFavouriteCard.name : "-");
+
+  document.getElementById("sTrophies").textContent = p.trophies;
+  document.getElementById("sBest").textContent = "历史最高 " + p.bestTrophies;
+  const wl = p.wins + p.losses;
+  const wr = wl ? (p.wins / wl * 100).toFixed(1) : 0;
+  document.getElementById("sWinRate").textContent = wr + "%";
+  document.getElementById("sWL").textContent = p.wins + " 胜 / " + p.losses + " 负";
+  document.getElementById("sBattles").textContent = p.battleCount;
+  document.getElementById("sThree").textContent = "三冠 " + p.threeCrownWins;
+  document.getElementById("sLevel").textContent = "Lv " + p.expLevel;
+  // King Tower level is no longer a direct API field post-2026-06; tower troop
+  // level effectively reflects it (tower troops cap at King Tower level).
+  const towerLvl = (p.currentDeckSupportCards && p.currentDeckSupportCards[0] && p.currentDeckSupportCards[0].level);
+  document.getElementById("sStreak").textContent =
+    (towerLvl ? "皇家塔 Lv" + towerLvl + " · " : "") + "连胜/败 " + (p.currentWinLoseStreak || 0);
+
+  // Ranking systems (three separate ladders):
+  //  - Trophy Road (p.trophies): affected by all modes incl. Showdown
+  //  - Arena (seasonal arena progression)
+  //  - Path of Legends (ranked ladder, resets each season)
+  document.getElementById("rTrophyRoad").textContent = p.trophies;
+  document.getElementById("rTrophyRoadBest").textContent = "历史最高 " + p.bestTrophies;
+  document.getElementById("rArena").textContent = p.arena ? p.arena.name : "-";
+  document.getElementById("rArenaId").textContent = p.arena ? ("ID " + p.arena.id) : "";
+  const polName = n => "联赛 " + n + " 级";
+  const cur = p.currentPathOfLegendSeasonResult;
+  const best = p.bestPathOfLegendSeasonResult;
+  if (cur && (cur.trophies || cur.rank)) {
+    document.getElementById("rPolCur").textContent = cur.trophies + " 分";
+    document.getElementById("rPolCurSub").textContent =
+      polName(cur.leagueNumber) + (cur.rank ? " · 全球第 " + cur.rank : "");
+  } else {
+    document.getElementById("rPolCur").textContent = "未上榜";
+    document.getElementById("rPolCurSub").textContent = "本赛季暂无排位对局";
+  }
+  if (best && (best.trophies || best.rank)) {
+    document.getElementById("rPolBest").textContent = best.trophies + " 分";
+    document.getElementById("rPolBestSub").textContent =
+      polName(best.leagueNumber) + (best.rank ? " · 最高第 " + best.rank : "");
+  } else {
+    document.getElementById("rPolBest").textContent = "—";
+    document.getElementById("rPolBestSub").textContent = "尚无排位战绩";
+  }
+
+  // deck
+  const deck = p.currentDeck || [];
+  let elixir = 0, n = 0;
+  const deckEl = document.getElementById("deck");
+  deckEl.innerHTML = "";
+  if (!deck.length) {
+    deckEl.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:14px 4px">' +
+      '该账号暂无当前卡组数据 —— API 未返回 currentDeck，通常是账号长期未活跃/近期无对局所致。' +
+      '</div>';
+  }
+  deck.forEach((c, i) => {
+    const e = (typeof c.elixir === "number") ? c.elixir : c.elixirCost;
+    if (typeof e === "number") { elixir += e; n++; }
+    deckEl.innerHTML += cardTileHTML(c, i);
+  });
+  document.getElementById("deckElixir").textContent = n ? "· 平均圣水 " + (elixir / n).toFixed(1) : "";
+
+  // tower troops (皇家塔): currentDeckSupportCards is the one(s) equipped now
+  const towers = p.currentDeckSupportCards || p.supportCards || [];
+  const towerWrap = document.getElementById("towerWrap");
+  const towerList = document.getElementById("towerList");
+  if (towers.length) {
+    towerList.innerHTML = towers.map(t => {
+      const icon = (t.iconUrls && t.iconUrls.medium) || "";
+      return '<div class="tower">' +
+        (icon ? '<img src="' + icon + '" alt="">' : '') +
+        '<div><div class="tname">' + t.name + '</div>' +
+        '<div class="tlvl">等级 ' + t.level + ' / ' + t.maxLevel + '</div></div>' +
+      '</div>';
+    }).join("");
+    towerWrap.classList.remove("hidden");
+  } else {
+    towerWrap.classList.add("hidden");
+  }
+
+  // battlelog
+  const bl = data.battlelog;
+  if (bl) {
+    document.getElementById("recentRecord").textContent = bl.wins + " 胜 " + bl.losses + " 负 " + bl.draws + " 平";
+    document.getElementById("recentModes").textContent = "近 " + (bl.wins + bl.losses + bl.draws) + " 场 · 胜率 " + bl.winRate + "% · " + bl.modes.map(m => m[0] + "(" + m[1] + ")").slice(0, 3).join(" ");
+    // meta chart
+    const meta = bl.topOpponentCards || [];
+    const max = meta.length ? meta[0][1] : 1;
+    const chart = document.getElementById("metaChart");
+    chart.innerHTML = meta.slice(0, 10).map(([name, cnt]) =>
+      '<div class="barrow"><div class="bn">' + name + '</div>' +
+      '<div class="barwrap"><div class="bar" style="width:' + (cnt / max * 100) + '%"></div></div>' +
+      '<div class="bv">' + cnt + '</div></div>'
+    ).join("");
+    // rows
+    const tbody = document.getElementById("battleRows");
+    tbody.innerHTML = bl.battles.map(b => {
+      const myCell = sidePlayersHTML(b.myPlayers, b.myCards, b.myTowers);
+      const oppCell = sidePlayersHTML(b.oppPlayers, b.oppCards, b.oppTowers);
+      const resTxt = b.result === "win" ? "胜" : b.result === "loss" ? "负" : "平";
+      const oppLabel = b.oppName + (b.oppTag ? ' <span style="color:var(--muted);font-size:11px">' + b.oppTag + '</span>' : "");
+      return '<tr>' +
+        '<td>' + fmtTime(b.time) + '</td>' +
+        '<td>' + b.mode + '</td>' +
+        '<td>' + b.myCrowns + ' - ' + b.oppCrowns + '</td>' +
+        '<td class="res ' + b.result + '">' + resTxt + '</td>' +
+        '<td>' + oppLabel + '</td>' +
+        '<td>' + myCell + '</td>' +
+        '<td>' + oppCell + '</td>' +
+      '</tr>';
+    }).join("");
+  }
+
+  // chests
+  const chests = (data.chests && data.chests.items) || [];
+  const chestEl = document.getElementById("chests");
+  chestEl.innerHTML = chests.map(c => {
+    const big = BIG_CHESTS.some(k => (c.name || "").includes(k));
+    return '<div class="chest' + (big ? ' big' : '') + '">' +
+      '<div class="idx">+' + c.index + '</div>' +
+      '<div class="cn">' + c.name + '</div></div>';
+  }).join("");
+}
+
+let historyData = null;
+
+async function loadHistory(tag) {
+  try {
+    const res = await fetch("/api/history?tag=" + encodeURIComponent(tag));
+    historyData = await res.json();
+    if (historyData.error) return;
+    renderHistory();
+  } catch (e) {}
+}
+
+function renderHistory() {
+  const h = historyData;
+  document.getElementById("archTotal").textContent = h.totalArchived;
+  document.getElementById("archWL").textContent = h.wins + " 胜 / " + h.losses + " 负 · 胜率 " + h.winRate + "%";
+  document.getElementById("archiveNote").textContent = "· 本地累积，越用越全（突破 API 的 25 场上限）";
+
+  // mode filter options
+  const sel = document.getElementById("modeFilter");
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">全部 (' + h.totalArchived + ')</option>' +
+    h.modes.map(m => '<option value="' + m[0] + '">' + m[0] + ' (' + m[1] + ')</option>').join("");
+  sel.value = cur;
+
+  renderTrophyChart(h.ladderTrend || []);
+  renderHistoryTable();
+}
+
+function renderHistoryTable() {
+  if (!historyData) return;
+  const filter = document.getElementById("modeFilter").value;
+  const rows = historyData.battles.filter(b => !filter || b.mode === filter);
+  document.getElementById("histCount").textContent = "显示 " + rows.length + " 场";
+  document.getElementById("histRows").innerHTML = rows.map(b => {
+    const resTxt = b.result === "win" ? "胜" : b.result === "loss" ? "负" : "平";
+    const myCell = sidePlayersHTML(b.myPlayers, b.myCards, b.myTowers);
+    const oppCell = sidePlayersHTML(b.oppPlayers, b.oppCards, b.oppTowers);
+    const oppLabel = b.oppName + (b.oppTag ? ' <span style="color:var(--muted);font-size:11px">' + b.oppTag + '</span>' : "");
+    return '<tr>' +
+      '<td>' + fmtTime(b.battleTime) + '</td>' +
+      '<td>' + b.mode + '</td>' +
+      '<td>' + b.myCrowns + ' - ' + b.oppCrowns + '</td>' +
+      '<td class="res ' + b.result + '">' + resTxt + '</td>' +
+      '<td>' + oppLabel + '</td>' +
+      '<td>' + myCell + '</td>' +
+      '<td>' + oppCell + '</td>' +
+    '</tr>';
+  }).join("");
+}
+
+function renderTrophyChart(trend) {
+  const svg = document.getElementById("trophyChart");
+  const range = document.getElementById("trophyRange");
+  // trend = ladderTrend points {battleTime, before, change, after}. Build a value
+  // series that starts at the first battle's "before" then each "after".
+  trend = (trend || []).slice();
+  if (trend.length === 0) {
+    svg.innerHTML = '<text x="10" y="45" fill="#9aa3c0" font-size="12">暂无天梯(Ladder)对局记录，打几场排位天梯即可生成趋势</text>';
+    range.textContent = "";
+    return;
+  }
+  const vals = [trend[0].before].concat(trend.map(p => p.after));
+  if (vals.length < 2) {
+    svg.innerHTML = '<text x="10" y="45" fill="#9aa3c0" font-size="12">天梯对局不足，多打几场即可生成趋势</text>';
+    range.textContent = "当前 " + vals[0] + " 杯（1 场天梯）";
+    return;
+  }
+  const w = svg.clientWidth || 500, hgt = 90, pad = 8;
+  const min = Math.min(...vals), max = Math.max(...vals);
+  const span = max - min || 1;
+  const step = (w - pad * 2) / (vals.length - 1);
+  const coords = vals.map((v, i) => {
+    const x = pad + i * step;
+    const y = hgt - pad - ((v - min) / span) * (hgt - pad * 2);
+    return [x, y];
+  });
+  const line = coords.map((c, i) => (i ? "L" : "M") + c[0].toFixed(1) + " " + c[1].toFixed(1)).join(" ");
+  const area = line + " L" + coords[coords.length - 1][0].toFixed(1) + " " + (hgt - pad) + " L" + pad + " " + (hgt - pad) + " Z";
+  svg.innerHTML =
+    '<path d="' + area + '" fill="rgba(255,203,69,.15)"/>' +
+    '<path d="' + line + '" fill="none" stroke="var(--gold)" stroke-width="2"/>' +
+    coords.map(c => '<circle cx="' + c[0].toFixed(1) + '" cy="' + c[1].toFixed(1) + '" r="2.5" fill="var(--gold)"/>').join("");
+  const first = vals[0], last = vals[vals.length - 1];
+  const diff = last - first;
+  const sign = diff > 0 ? "+" : "";
+  range.textContent = first + " → " + last + " 杯（天梯 " + trend.length + " 场, " + sign + diff + "）";
+}
+
+function fmtTime(t) {
+  // 20260812T122441 -> 08-12 12:24
+  if (!t || t.length < 13) return t;
+  const mo = t.slice(4, 6), d = t.slice(6, 8), h = t.slice(9, 11), mi = t.slice(11, 13);
+  return mo + "-" + d + " " + h + ":" + mi;
+}
+
+document.getElementById("tagInput").addEventListener("keydown", e => { if (e.key === "Enter") fetchPlayer(); });
+init().then(() => fetchPlayer());
+</script>
+</body>
+</html>
