@@ -80,5 +80,12 @@ def api_get(path, token):
     req = urllib.request.Request(url)
     req.add_header("Authorization", f"Bearer {token}")
     req.add_header("Accept", "application/json")
+    # The RoyaleAPI proxy sits behind Cloudflare, which bans the default
+    # 'Python-urllib/x.y' User-Agent (error 1010). Send a normal UA so the
+    # proxy lets us through.
+    req.add_header("User-Agent",
+                   "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+                   "AppleWebKit/537.36 (KHTML, like Gecko) "
+                   "Chrome/124.0 Safari/537.36 crdash/1.0")
     with urllib.request.urlopen(req, timeout=25, context=SSL_CONTEXT) as resp:
         return json.loads(resp.read().decode("utf-8"))
