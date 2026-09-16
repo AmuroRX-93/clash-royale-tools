@@ -1,7 +1,8 @@
 name: Collect Clash Royale history
 on:
   schedule:
-    - cron: '17 * * * *'
+    - cron: '17,47 * * * *'
+    - cron: '23 0 * * *'
   workflow_dispatch:
 permissions:
   contents: read
@@ -10,6 +11,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   collect:
+    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '17,47 * * * *'
     runs-on: ubuntu-latest
     timeout-minutes: 8
     steps:
@@ -27,3 +29,24 @@ jobs:
           CR_API_TOKEN: ${{ secrets.CR_API_TOKEN }}
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           CR_API_BASE: https://proxy.royaleapi.dev/v1
+  daily-check-in:
+    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '23 0 * * *'
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - name: Record daily activity
+        run: |
+          date -u '+%Y-%m-%d' > .github/collector-heartbeat.txt
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add .github/collector-heartbeat.txt
+          if ! git diff --cached --quiet; then
+            git commit -m "Daily collector check-in"
+            git pull --rebase origin main
+            git push origin HEAD:main
+          fi
