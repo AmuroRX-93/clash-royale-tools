@@ -29,6 +29,12 @@ jobs:
           CR_API_TOKEN: ${{ secrets.CR_API_TOKEN }}
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           CR_API_BASE: https://proxy.royaleapi.dev/v1
+      - name: Verify historical archive reads
+        if: github.event_name == 'workflow_dispatch'
+        run: node scripts/check-history.mjs
+        working-directory: cloud
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
   daily-check-in:
     if: github.event_name == 'workflow_dispatch' || github.event.schedule == '23 0 * * *'
     runs-on: ubuntu-latest
