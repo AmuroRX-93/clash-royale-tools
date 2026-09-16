@@ -1,5 +1,6 @@
-import {neon} from '@neondatabase/serverless';
+import {neon,neonConfig} from '@neondatabase/serverless';
 import {battleRow,summarize} from './domain.js';
+neonConfig.fetchFunction=(url,options)=>fetch(url,{...options,signal:AbortSignal.timeout(20000)});
 export function database(env){if(!env.DATABASE_URL)throw new Error('database_unconfigured');return neon(env.DATABASE_URL);}
 export async function subscriptions(sql){const rows=await sql.query('SELECT player_tag,name FROM subscriptions ORDER BY added_at ASC,player_tag ASC');return rows.map(r=>({tag:r.player_tag,name:r.name||r.player_tag}));}
 export async function addSubscription(sql,tag,name){const rows=await sql.query('INSERT INTO subscriptions (player_tag,name,added_at) VALUES ($1,$2,$3) ON CONFLICT (player_tag) DO UPDATE SET name=EXCLUDED.name RETURNING (xmax=0) AS created',[tag,name||tag,new Date().toISOString()]);return rows[0].created;}
