@@ -15,3 +15,7 @@ __pycache__/
 
 # Logs
 *.log
+
+# Cloud dependency lock and local installs
+!cloud/package-lock.json
+node_modules/

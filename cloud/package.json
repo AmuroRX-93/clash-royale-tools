@@ -1,0 +1,1 @@
+{"name":"clash-royale-sites","private":true,"type":"module","scripts":{"build":"node scripts/build.mjs","dev":"node scripts/preview.mjs","test":"node --test tests/*.test.mjs"},"dependencies":{"@neondatabase/serverless":"^1.1.0","esbuild":"^0.28.2"}}
